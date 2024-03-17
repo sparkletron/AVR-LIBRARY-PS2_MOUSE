@@ -40,6 +40,10 @@ void recvCallback(uint8_t recvBuffer);
 
 int main(void)
 {
+  DDRD = ~0;
+
+  PORTD = 0;
+
   initPS2mouse(&recvCallback, &setPS2_PORTB_Device, &PORTB, PORTB0, PORTB1);
 
   for(;;)

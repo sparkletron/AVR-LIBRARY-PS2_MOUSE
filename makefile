@@ -1,4 +1,4 @@
-SOURCES := src/ps2Keyboard.c
+SOURCES := src/ps2mouse.c
 ARCHIVE := $(addprefix lib,$(notdir $(SOURCES:.c=.a)))
 AVR_MMCU := $(if $(AVR_MMCU),$(AVR_MMCU),atmega328p)
 AVR_CPU_SPEED := $(if $(AVR_CPU_SPEED),$(AVR_CPU_SPEED),16000000UL)

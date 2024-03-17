@@ -1,10 +1,10 @@
-# PS2 Keyboard driver for AVR based microcontrollers.
+# PS2 mouse driver for AVR based microcontrollers.
 
-Interface a atmel microcontroller with a PS/2 keyboard.
+Interface a atmel microcontroller with a PS/2 mouse.
 
 author: Jay Convertino
 
-data: 2024.03.11
+data: 2024.03.17
 
 license: MIT
 
@@ -34,21 +34,17 @@ license: MIT
 #include <avr/io.h>
 
 #include "ps2PORTBirq.h"
-#include "ps2Keyboard.h"
+#include "ps2mouse.h"
 
 void recvCallback(uint8_t recvBuffer);
 
 int main(void)
 {
-	DDRD = ~0;
-
-	PORTD = 0;
-
-	initPS2keyboard(&recvCallback, &setPS2_PORTB_Device, &PORTB, PORTB0, PORTB1);
+	initPS2mouse(&recvCallback, &setPS2_PORTB_Device, &PORTB, PORTB0, PORTB1);
 
 	for(;;)
 	{
-		updatePS2leds();
+    _delay_ms(100);
 	}
 }
 

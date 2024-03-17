@@ -40,16 +40,16 @@ void recvCallback(uint8_t recvBuffer);
 
 int main(void)
 {
-	initPS2mouse(&recvCallback, &setPS2_PORTB_Device, &PORTB, PORTB0, PORTB1);
+  initPS2mouse(&recvCallback, &setPS2_PORTB_Device, &PORTB, PORTB0, PORTB1);
 
-	for(;;)
-	{
+  for(;;)
+  {
     _delay_ms(100);
-	}
+  }
 }
 
 void recvCallback(uint8_t recvBuffer)
 {
-	PORTD = recvBuffer;
+  PORTD = recvBuffer;
 }
 ```

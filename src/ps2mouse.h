@@ -35,9 +35,8 @@
 #define _PS2_MOUSE
 
 #include <inttypes.h>
-#include "ps2defines.h"
+#include "ps2base.h"
 #include "ps2mouseDefines.h"
-#include "ps2DataType.h"
 
 /**
  * \brief initialize PS2 keyboard

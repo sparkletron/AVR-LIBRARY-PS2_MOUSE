@@ -82,7 +82,7 @@ void initPS2mouse(t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Devi
   g_ps2.lastAckState = ack;
   g_ps2.dataState = idle;
   g_ps2.userRecvCallback = PS2recvCallback;
-  g_ps2.recvCallback = NULL;
+  g_ps2.recvCallback = &extractData;
 
   g_ps2.responseCallback = &checkMouseResponse;
   g_ps2.callUserCallback = &extractData;
@@ -197,6 +197,10 @@ void checkMouseResponse(uint16_t ps2Data)
       if(g_ps2.lastCMD == CMD_READ_ID)
       {
         g_ps2.recvCallback = &setID;
+      }
+      if(g_ps2.lastCMD == CMD_RESET)
+      {
+        g_ps2.recvCallback = &checkMouseResponse;
       }
       g_ps2.callbackState = ack_cmd;
       break;

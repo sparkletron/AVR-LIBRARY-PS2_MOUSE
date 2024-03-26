@@ -38,6 +38,7 @@
 #include "ps2base.h"
 #include "ps2mouseDefines.h"
 
+
 /**
  * \brief initialize PS2 keyboard
  *
@@ -47,36 +48,36 @@
  * \param clkPin Define which pin used for the clock
  * \param dataPin Define the pin used for data.
  */
-void initPS2mouse(t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Device)(struct s_ps2 *p_device), volatile uint8_t *p_port, uint8_t clkPin, uint8_t dataPin);
+void initPS2mouse(struct s_ps2 *p_ps2mouse, t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Device)(struct s_ps2 *p_device), volatile uint8_t *p_port, uint8_t clkPin, uint8_t dataPin);
 
 /**
  * \brief Reset PS2 mouse.
  */
-void resetPS2mouse();
+void resetPS2mouse(struct s_ps2 *p_ps2mouse);
 
 /**
  * \brief Disable PS2 mouse.
  */
-void disablePS2mouse();
+void disablePS2mouse(struct s_ps2 *p_ps2mouse);
 
 /**
  * \brief Enable PS2 mouse.
  */
-void enablePS2mouse();
+void enablePS2mouse(struct s_ps2 *p_ps2mouse);
 
 /**
  * \brief set PS2 mouse sample rate.
  */
-void setPS2sampleRate(uint8_t rate);
+void setPS2sampleRate(struct s_ps2 *p_ps2mouse, uint8_t rate);
 
 /**
  * \brief obtain PS2 mouse id to internal struct.
  */
-void obtainPS2mouseID();
+void obtainPS2mouseID(struct s_ps2 *p_ps2mouse);
 
 /**
  * \brief get PS2 mouse id from internal struct.
  */
-uint8_t getPS2mouseID();
+uint8_t getPS2mouseID(struct s_ps2 *p_ps2mouse);
 
 #endif

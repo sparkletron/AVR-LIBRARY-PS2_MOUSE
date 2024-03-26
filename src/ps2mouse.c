@@ -41,28 +41,28 @@
 
 #include "ps2mouse.h"
 
-struct s_ps2 g_ps2;
-
 struct s_ps2mouse
 {
   volatile uint8_t id;
-} g_ps2mouse;
+};
 
 //helper functions
 //CALLBACK ROUTINES
 //set the id of the mouse if last command was get id and ready command received.
-void setID(uint16_t ps2Data);
+void setID(void *p_data, uint16_t ps2Data);
 //check the response to mouse command sent and perform needed operations
-void checkMouseResponse(uint16_t ps2Data);
+void checkMouseResponse(void *p_data, uint16_t ps2Data);
 //Default callback for recv that processes data and then hands it off to the user callback.
-void extractData(uint16_t ps2data);
+void extractData(void *p_data, uint16_t ps2data);
 
-void initPS2mouse(t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Device)(struct s_ps2 *p_device), volatile uint8_t *p_port, uint8_t clkPin, uint8_t dataPin)
+void initPS2mouse(struct s_ps2 *p_ps2mouse, t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Device)(struct s_ps2 *p_device), volatile uint8_t *p_port, uint8_t clkPin, uint8_t dataPin)
 {
   uint8_t tmpSREG = 0;
 
   tmpSREG = SREG;
   cli();
+
+  if(p_ps2mouse == NULL) return;
 
   if(p_port == NULL) return;
 
@@ -70,40 +70,42 @@ void initPS2mouse(t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Devi
 
   if(setPS2_PORT_Device == NULL) return;
 
-  setPS2_PORT_Device(&g_ps2);
+  memset(p_ps2mouse, 0, sizeof(struct s_ps2));
 
-  memset(&g_ps2mouse, 0, sizeof(g_ps2mouse));
+  p_ps2mouse->p_device = malloc(sizeof(struct s_ps2mouse));
 
-  memset(&g_ps2, 0, sizeof(g_ps2));
+  ((struct s_ps2mouse *)(p_ps2mouse->p_device))->id = 0;
 
-  g_ps2.clkPin = clkPin;
-  g_ps2.dataPin = dataPin;
-  g_ps2.p_port = p_port;
-  g_ps2.lastAckState = ack;
-  g_ps2.dataState = idle;
-  g_ps2.userRecvCallback = PS2recvCallback;
-  g_ps2.recvCallback = &extractData;
+  p_ps2mouse->clkPin = clkPin;
+  p_ps2mouse->dataPin = dataPin;
+  p_ps2mouse->p_port = p_port;
+  p_ps2mouse->lastAckState = ack;
+  p_ps2mouse->dataState = idle;
+  p_ps2mouse->userRecvCallback = PS2recvCallback;
+  p_ps2mouse->recvCallback = NULL;
 
-  g_ps2.responseCallback = &checkMouseResponse;
-  g_ps2.callUserCallback = &extractData;
+  p_ps2mouse->responseCallback = &checkMouseResponse;
+  p_ps2mouse->callUserCallback = &extractData;
 
-  *(g_ps2.p_port - 1) &= ~(1 << g_ps2.clkPin);
-  *(g_ps2.p_port - 1) &= ~(1 << g_ps2.dataPin);
+  setPS2_PORT_Device(p_ps2mouse);
 
-  if(g_ps2.p_port == &PORTB)
+  *(p_ps2mouse->p_port - 1) &= ~(1 << p_ps2mouse->clkPin);
+  *(p_ps2mouse->p_port - 1) &= ~(1 << p_ps2mouse->dataPin);
+
+  if(p_ps2mouse->p_port == &PORTB)
   {
     PCICR |= 1 << PCIE0;
-    PCMSK0 |= 1 << g_ps2.clkPin;
+    PCMSK0 |= 1 << p_ps2mouse->clkPin;
   }
-  else if(g_ps2.p_port == &PORTC)
+  else if(p_ps2mouse->p_port == &PORTC)
   {
     PCICR |= 1 << PCIE1;
-    PCMSK1 |= 1 << g_ps2.clkPin;
+    PCMSK1 |= 1 << p_ps2mouse->clkPin;
   }
   else
   {
     PCICR |= 1 << PCIE2;
-    PCMSK2 |= 1 << g_ps2.clkPin;
+    PCMSK2 |= 1 << p_ps2mouse->clkPin;
   }
 
   SREG = tmpSREG;
@@ -111,110 +113,140 @@ void initPS2mouse(t_PS2userRecvCallback PS2recvCallback, void (*setPS2_PORT_Devi
   sei();
 
   //initialize mouse using PC init method
-  resetPS2mouse();
+  resetPS2mouse(p_ps2mouse);
 
-  enablePS2mouse();
+  enablePS2mouse(p_ps2mouse);
 
-  obtainPS2mouseID();
+  obtainPS2mouseID(p_ps2mouse);
 }
 
-void resetPS2mouse()
+void resetPS2mouse(struct s_ps2 *p_ps2mouse)
 {
-  sendCommand(&g_ps2, CMD_RESET);
+  if(p_ps2mouse == NULL) return;
 
-  waitForCMDack(&g_ps2);
+  sendCommand(p_ps2mouse, CMD_RESET);
 
-  waitForDevReady(&g_ps2);
+  waitForCMDack(p_ps2mouse);
 
-  waitForDevID(&g_ps2);
+  waitForDevReady(p_ps2mouse);
+
+  waitForDevID(p_ps2mouse);
 }
 
-void disablePS2mouse()
+void disablePS2mouse(struct s_ps2 *p_ps2mouse)
 {
-  sendCommand(&g_ps2, CMD_DISABLE);
+  if(p_ps2mouse == NULL) return;
+
+  sendCommand(p_ps2mouse, CMD_DISABLE);
 }
 
-void enablePS2mouse()
+void enablePS2mouse(struct s_ps2 *p_ps2mouse)
 {
-  sendCommand(&g_ps2, CMD_ENABLE);
+  if(p_ps2mouse == NULL) return;
+
+  sendCommand(p_ps2mouse, CMD_ENABLE);
 }
 
-void setPS2sampleRate(uint8_t rate)
+void setPS2sampleRate(struct s_ps2 *p_ps2mouse, uint8_t rate)
 {
-  sendCommand(&g_ps2, CMD_SET_RATE);
+  if(p_ps2mouse == NULL) return;
 
-  waitForCMDack(&g_ps2);
+  sendCommand(p_ps2mouse, CMD_SET_RATE);
 
-  sendData(&g_ps2, rate);
+  waitForCMDack(p_ps2mouse);
 
-  waitForCMDack(&g_ps2);
+  sendData(p_ps2mouse, rate);
+
+  waitForCMDack(p_ps2mouse);
 }
 
-void obtainPS2mouseID()
+void obtainPS2mouseID(struct s_ps2 *p_ps2mouse)
 {
-  sendCommand(&g_ps2, CMD_READ_ID);
+  if(p_ps2mouse == NULL) return;
 
-  waitForDevID(&g_ps2);
+  sendCommand(p_ps2mouse, CMD_READ_ID);
+
+  waitForDevID(p_ps2mouse);
 }
 
-uint8_t getPS2mouseID()
+uint8_t getPS2mouseID(struct s_ps2 *p_ps2mouse)
 {
-  return g_ps2mouse.id;
+  if(p_ps2mouse == NULL) return 0;
+
+  return ((struct s_ps2mouse *)(p_ps2mouse->p_device))->id;
 }
 
 //callback functions
-void setID(uint16_t ps2Data)
+void setID(void *p_data, uint16_t ps2Data)
 {
   uint8_t convData = 0;
 
+  struct s_ps2 *p_ps2 = NULL;
+
+  if(p_data == NULL) return;
+
+  p_ps2 = (struct s_ps2 *)p_data;
+
   convData = convertToRaw(ps2Data);
 
-  g_ps2.recvCallback = &extractData;
+  p_ps2->recvCallback = &extractData;
 
-  g_ps2mouse.id = convData;
+  ((struct s_ps2mouse *)(p_ps2->p_device))->id = convData;
 
-  g_ps2.callbackState = dev_id;
+  p_ps2->callbackState = dev_id;
 }
 
-void checkMouseResponse(uint16_t ps2Data)
+void checkMouseResponse(void *p_data, uint16_t ps2Data)
 {
   uint8_t convData = 0;
 
+  struct s_ps2 *p_ps2 = NULL;
+
+  if(p_data == NULL) return;
+
+  p_ps2 = (struct s_ps2 *)p_data;
+
   convData = convertToRaw(ps2Data);
 
-  g_ps2.recvCallback = &extractData;
+  p_ps2->recvCallback = &extractData;
 
   switch(convData)
   {
     case CMD_DEV_RDY:
-      g_ps2.recvCallback = &setID;
-      g_ps2.callbackState = ready_cmd;
+      p_ps2->recvCallback = &setID;
+      p_ps2->callbackState = ready_cmd;
       break;
     case CMD_RESEND:
-      g_ps2.callbackState = resend_cmd;
+      p_ps2->callbackState = resend_cmd;
       break;
     case CMD_ACK:
-      if(g_ps2.lastCMD == CMD_READ_ID)
+      if(p_ps2->lastCMD == CMD_READ_ID)
       {
-        g_ps2.recvCallback = &setID;
+        p_ps2->recvCallback = &setID;
       }
-      if(g_ps2.lastCMD == CMD_RESET)
+      if(p_ps2->lastCMD == CMD_RESET)
       {
-        g_ps2.recvCallback = &checkMouseResponse;
+        p_ps2->recvCallback = &checkMouseResponse;
       }
-      g_ps2.callbackState = ack_cmd;
+      p_ps2->callbackState = ack_cmd;
       break;
     default:
-      g_ps2.callbackState = no_cmd;
+      p_ps2->callbackState = no_cmd;
       break;
   }
 }
 
-void extractData(uint16_t ps2data)
+void extractData(void *p_data, uint16_t ps2data)
 {
   uint8_t rawPS2data = 0;
 
+  struct s_ps2 *p_ps2 = NULL;
+
+  if(p_data == NULL) return;
+
+  p_ps2 = (struct s_ps2 *)p_data;
+
   rawPS2data = convertToRaw(ps2data);
 
-  g_ps2.userRecvCallback(rawPS2data);
+  p_ps2->userRecvCallback(rawPS2data);
 }
